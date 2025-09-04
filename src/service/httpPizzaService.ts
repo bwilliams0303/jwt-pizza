@@ -1,6 +1,8 @@
 import { PizzaService, Franchise, FranchiseList, Store, OrderHistory, User, Menu, Order, Endpoints, OrderResponse, JWTPayload } from './pizzaService';
 
+// @ts-ignore
 const pizzaServiceUrl = import.meta.env.VITE_PIZZA_SERVICE_URL;
+// @ts-ignore
 const pizzaFactoryUrl = import.meta.env.VITE_PIZZA_FACTORY_URL;
 
 class HttpPizzaService implements PizzaService {
