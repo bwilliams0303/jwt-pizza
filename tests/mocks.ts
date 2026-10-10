@@ -1,12 +1,19 @@
 import { Page } from '@playwright/test';
 import { expect } from 'playwright-test-coverage';
-import { Order, Role, User } from '../src/service/pizzaService';
+import { Franchise, Order, Role, User } from '../src/service/pizzaService';
 
 export const diner: User = { id: '3', name: 'Kai Chen', email: 'd@jwt.com', password: 'a', roles: [{ role: Role.Diner }] };
+export const franchisee: User = {
+  id: '4',
+  name: 'Pizza Franchisee',
+  email: 'f@jwt.com',
+  password: 'franchisee',
+  roles: [{ role: Role.Diner }, { role: Role.Franchisee, objectId: '2' }],
+};
 
 export async function basicInit(page: Page) {
   let loggedInUser: User | undefined;
-  const validUsers: Record<string, User> = { [diner.email!]: diner };
+  const validUsers: Record<string, User> = { [diner.email!]: diner, [franchisee.email!]: franchisee };
 
   // Login (PUT), register (POST), and logout (DELETE)
   await page.route('*/**/api/auth', async (route) => {
@@ -52,25 +59,57 @@ export async function basicInit(page: Page) {
     await route.fulfill({ json: menuRes });
   });
 
-  // Standard franchises and stores
-  await page.route(/\/api\/franchise(\?.*)?$/, async (route) => {
-    const franchiseRes = {
-      franchises: [
-        {
-          id: 2,
-          name: 'LotaPizza',
-          stores: [
-            { id: 4, name: 'Lehi' },
-            { id: 5, name: 'Springville' },
-            { id: 6, name: 'American Fork' },
-          ],
-        },
-        { id: 3, name: 'PizzaCorp', stores: [{ id: 7, name: 'Spanish Fork' }] },
-        { id: 4, name: 'topSpot', stores: [] },
+  // Franchises and their stores. The mock keeps state so that creating and closing stores is reflected in later requests.
+  let nextStoreId = 100;
+  const franchises: Franchise[] = [
+    {
+      id: '2',
+      name: 'LotaPizza',
+      admins: [{ id: franchisee.id, name: franchisee.name!, email: franchisee.email! }],
+      stores: [
+        { id: '4', name: 'Lehi', totalRevenue: 0.05 },
+        { id: '5', name: 'Springville', totalRevenue: 0.25 },
+        { id: '6', name: 'American Fork', totalRevenue: 1.5 },
       ],
-    };
-    expect(route.request().method()).toBe('GET');
-    await route.fulfill({ json: franchiseRes });
+    },
+    { id: '3', name: 'PizzaCorp', stores: [{ id: '7', name: 'Spanish Fork', totalRevenue: 0 }] },
+    { id: '4', name: 'topSpot', stores: [] },
+  ];
+
+  await page.route(/\/api\/franchise(\/.*)?(\?.*)?$/, async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const [, , , franchiseId, store, storeId] = new URL(request.url()).pathname.split('/');
+
+    // GET /api/franchise?page&limit&name
+    if (!franchiseId) {
+      expect(method).toBe('GET');
+      await route.fulfill({ json: { franchises, more: false } });
+      return;
+    }
+
+    // GET /api/franchise/:userId
+    if (!store) {
+      expect(method).toBe('GET');
+      const userId = franchiseId;
+      await route.fulfill({ json: franchises.filter((f) => f.admins?.some((a) => a.id === userId)) });
+      return;
+    }
+
+    const franchise = franchises.find((f) => f.id === franchiseId)!;
+
+    // POST /api/franchise/:franchiseId/store
+    if (method === 'POST') {
+      const newStore = { ...request.postDataJSON(), id: String(nextStoreId++), totalRevenue: 0 };
+      franchise.stores.push(newStore);
+      await route.fulfill({ json: newStore });
+      return;
+    }
+
+    // DELETE /api/franchise/:franchiseId/store/:storeId
+    expect(method).toBe('DELETE');
+    franchise.stores = franchise.stores.filter((s) => s.id !== storeId);
+    await route.fulfill({ json: { message: 'store deleted' } });
   });
 
   // Order history (GET) and placing an order (POST)
@@ -104,7 +143,11 @@ export async function basicInit(page: Page) {
 }
 
 export async function login(page: Page, email: string, password: string) {
-  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByLabel('Global').getByRole('link', { name: 'Login' }).click();
+  await submitLogin(page, email, password);
+}
+
+export async function submitLogin(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'Email address' }).fill(email);
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
   await page.getByRole('button', { name: 'Login' }).click();
