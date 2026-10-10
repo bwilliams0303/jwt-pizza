@@ -57,3 +57,41 @@ test('logout', async ({ page }) => {
   await expect(page.getByRole('heading', { name: "The web's best pizza" })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
 });
+
+test('register shows a server error', async ({ page }) => {
+  await basicInit(page);
+  await page.route('*/**/api/auth', async (route) => {
+    expect(route.request().method()).toBe('POST');
+    await route.fulfill({ status: 500, json: { message: 'unable to register' } });
+  });
+  await page.getByRole('link', { name: 'Register' }).click();
+  await page.getByPlaceholder('Full name').fill('Pizza Lover');
+  await page.getByPlaceholder('Email address').fill('pl@jwt.com');
+  await page.getByPlaceholder('Password').fill('secret');
+  await page.getByRole('button', { name: 'Register' }).click();
+
+  await expect(page.getByRole('main')).toContainText('unable to register');
+  await expect(page.getByRole('heading', { name: 'Welcome to the party' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'PL' })).not.toBeVisible();
+});
+
+test('login when the service is unreachable', async ({ page }) => {
+  await basicInit(page);
+  await page.route('*/**/api/auth', (route) => route.abort());
+  await login(page, 'd@jwt.com', 'a');
+
+  await expect(page.getByRole('main')).toContainText('"code":500');
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+});
+
+test('an expired token is cleared on load', async ({ page }) => {
+  await basicInit(page);
+  await page.route('*/**/api/user/me', async (route) => {
+    await route.fulfill({ status: 401, json: { message: 'unauthorized' } });
+  });
+  await page.evaluate(() => localStorage.setItem('token', 'expired'));
+  await page.reload();
+
+  await expect(page.getByLabel('Global').getByRole('link', { name: 'Login' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).toBeNull();
+});
