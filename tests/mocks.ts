@@ -10,10 +10,11 @@ export const franchisee: User = {
   password: 'franchisee',
   roles: [{ role: Role.Diner }, { role: Role.Franchisee, objectId: '2' }],
 };
+export const admin: User = { id: '1', name: 'Pizza Admin', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
 
 export async function basicInit(page: Page) {
   let loggedInUser: User | undefined;
-  const validUsers: Record<string, User> = { [diner.email!]: diner, [franchisee.email!]: franchisee };
+  const validUsers: Record<string, User> = { [diner.email!]: diner, [franchisee.email!]: franchisee, [admin.email!]: admin };
 
   // Login (PUT), register (POST), and logout (DELETE)
   await page.route('*/**/api/auth', async (route) => {
@@ -60,6 +61,7 @@ export async function basicInit(page: Page) {
   });
 
   // Franchises and their stores. The mock keeps state so that creating and closing stores is reflected in later requests.
+  let nextFranchiseId = 100;
   let nextStoreId = 100;
   const franchises: Franchise[] = [
     {
@@ -74,6 +76,7 @@ export async function basicInit(page: Page) {
     },
     { id: '3', name: 'PizzaCorp', stores: [{ id: '7', name: 'Spanish Fork', totalRevenue: 0 }] },
     { id: '4', name: 'topSpot', stores: [] },
+    { id: '5', name: 'SliceOfLife', stores: [] },
   ];
 
   await page.route(/\/api\/franchise(\/.*)?(\?.*)?$/, async (route) => {
@@ -81,10 +84,34 @@ export async function basicInit(page: Page) {
     const method = request.method();
     const [, , , franchiseId, store, storeId] = new URL(request.url()).pathname.split('/');
 
-    // GET /api/franchise?page&limit&name
+    // POST /api/franchise
+    if (!franchiseId && method === 'POST') {
+      const franchiseReq = request.postDataJSON();
+      const admins = franchiseReq.admins.map((a: { email: string }) => ({ ...a, name: validUsers[a.email]?.name }));
+      const newFranchise: Franchise = { ...franchiseReq, id: String(nextFranchiseId++), admins, stores: [] };
+      franchises.push(newFranchise);
+      await route.fulfill({ json: newFranchise });
+      return;
+    }
+
+    // GET /api/franchise?page&limit&name, where name may be wrapped in * wildcards
     if (!franchiseId) {
       expect(method).toBe('GET');
-      await route.fulfill({ json: { franchises, more: false } });
+      const params = new URL(request.url()).searchParams;
+      const page = Number(params.get('page') ?? 0);
+      const limit = Number(params.get('limit') ?? 10);
+      const nameFilter = (params.get('name') ?? '*').replace(/\*/g, '').toLowerCase();
+      const matching = franchises.filter((f) => f.name.toLowerCase().includes(nameFilter));
+      const pageOfFranchises = matching.slice(page * limit, (page + 1) * limit);
+      await route.fulfill({ json: { franchises: pageOfFranchises, more: matching.length > (page + 1) * limit } });
+      return;
+    }
+
+    // DELETE /api/franchise/:franchiseId
+    if (!store && method === 'DELETE') {
+      const index = franchises.findIndex((f) => f.id === franchiseId);
+      franchises.splice(index, 1);
+      await route.fulfill({ json: { message: 'franchise deleted' } });
       return;
     }
 
