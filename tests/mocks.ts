@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 import { expect } from 'playwright-test-coverage';
-import { Role, User } from '../src/service/pizzaService';
+import { Order, Role, User } from '../src/service/pizzaService';
 
 export const diner: User = { id: '3', name: 'Kai Chen', email: 'd@jwt.com', password: 'a', roles: [{ role: Role.Diner }] };
 
@@ -73,15 +73,31 @@ export async function basicInit(page: Page) {
     await route.fulfill({ json: franchiseRes });
   });
 
-  // Order a pizza.
+  // Order history (GET) and placing an order (POST)
+  const orders: Order[] = [];
   await page.route('*/**/api/order', async (route) => {
-    const orderReq = route.request().postDataJSON();
-    const orderRes = {
-      order: { ...orderReq, id: 23 },
-      jwt: 'eyJpYXQ',
-    };
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { id: '1', dinerId: loggedInUser?.id, orders } });
+      return;
+    }
+
     expect(route.request().method()).toBe('POST');
-    await route.fulfill({ json: orderRes });
+    const orderReq = route.request().postDataJSON();
+    const order = { ...orderReq, id: String(23 + orders.length), date: '2026-10-09T12:00:00.000Z' };
+    orders.push(order);
+    await route.fulfill({ json: { order, jwt: 'eyJpYXQ' } });
+  });
+
+  // Verify an order's JWT with the pizza factory
+  await page.route('*/**/api/order/verify', async (route) => {
+    expect(route.request().method()).toBe('POST');
+    expect(route.request().postDataJSON()).toMatchObject({ jwt: 'eyJpYXQ' });
+    await route.fulfill({
+      json: {
+        message: 'valid',
+        payload: { vendor: { id: 'jwt-pizza', name: 'JWT Pizza Factory' }, diner: { id: 3, name: 'Kai Chen', email: 'd@jwt.com' }, order: { id: 23 } },
+      },
+    });
   });
 
   await page.goto('/');
