@@ -18,6 +18,7 @@ export default function DinerDashboard(props: Props) {
   const nameRef = React.useRef<HTMLInputElement>(null);
   const emailRef = React.useRef<HTMLInputElement>(null);
   const passwordRef = React.useRef<HTMLInputElement>(null);
+  const [updateError, setUpdateError] = React.useState('');
 
   React.useEffect(() => {
     (async () => {
@@ -45,12 +46,24 @@ export default function DinerDashboard(props: Props) {
       roles: user.roles,
     };
 
-    await pizzaService.updateUser(updatedUser);
+    try {
+      await pizzaService.updateUser(updatedUser);
+    } catch (err: any) {
+      // Keep the dialog open so the user can fix the problem and try again
+      setUpdateError(err.message || 'Unable to update user');
+      return;
+    }
 
+    setUpdateError('');
     props.setUser(updatedUser);
     setTimeout(() => {
       HSOverlay.close(document.getElementById('hs-jwt-modal')!);
     }, 100);
+  }
+
+  function openEditDialog() {
+    setUpdateError('');
+    HSOverlay.open(document.getElementById('hs-jwt-modal')!);
   }
 
   return (
@@ -59,7 +72,7 @@ export default function DinerDashboard(props: Props) {
         <div className="hs-tooltip inline-block">
           <img className="hs-tooltip-toggle relative inline-block size-[96px] rounded-full ring-2 ring-white hover:z-10" src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80" alt="Employee stock photo" />
         </div>
-        <Button title="Edit" className="w-16 p-0" onPress={() => HSOverlay.open(document.getElementById('hs-jwt-modal')!)} />
+        <Button title="Edit" className="w-16 p-0" onPress={openEditDialog} />
 
         <div className="my-4 text-lg text-orange-200 text-start grid grid-cols-5 gap-2">
           <div className="font-semibold text-orange-400">name:</div> <div className="col-span-4">{user.name}</div>
@@ -136,13 +149,24 @@ export default function DinerDashboard(props: Props) {
             </div>
             <div className="p-4 overflow-y-scroll max-h-52">
               <div className="my-4 text-lg text-start grid grid-cols-5 gap-2 items-center">
-                <div className="font-semibold">name:</div>
-                <input type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
-                <div className="font-semibold">email:</div>
-                <input type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
-                <div className="font-semibold">password:</div>
-                <input id="password" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
+                <label htmlFor="edit-user-name" className="font-semibold">
+                  name:
+                </label>
+                <input id="edit-user-name" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
+                <label htmlFor="edit-user-email" className="font-semibold">
+                  email:
+                </label>
+                <input id="edit-user-email" type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
+                <label htmlFor="edit-user-password" className="font-semibold">
+                  password:
+                </label>
+                <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
               </div>
+              {updateError && (
+                <div role="alert" className="text-sm text-red-600">
+                  {updateError}
+                </div>
+              )}
             </div>
             <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
               <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" onClick={updateUser}>

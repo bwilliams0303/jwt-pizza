@@ -7,6 +7,9 @@ import { pizzaService } from '../service/service';
 import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
 
+// Number of users shown per page in the Users table
+const USER_PAGE_SIZE = 10;
+
 interface Props {
   user: User | null;
 }
@@ -20,6 +23,7 @@ export default function AdminDashboard(props: Props) {
   const [userPage, setUserPage] = React.useState(0);
   const [userFilter, setUserFilter] = React.useState('');
   const filterUserRef = React.useRef<HTMLInputElement>(null);
+  const [userError, setUserError] = React.useState('');
 
   React.useEffect(() => {
     (async () => {
@@ -27,13 +31,15 @@ export default function AdminDashboard(props: Props) {
     })();
   }, [props.user, franchisePage]);
 
-  React.useEffect(() => {
-    (async () => {
-      if (Role.isRole(props.user, Role.Admin)) {
-        setUserList(await pizzaService.getUsers(userPage, 10, `*${userFilter}*`));
-      }
-    })();
+  const loadUsers = React.useCallback(async () => {
+    if (Role.isRole(props.user, Role.Admin)) {
+      setUserList(await pizzaService.getUsers(userPage, USER_PAGE_SIZE, `*${userFilter}*`));
+    }
   }, [props.user, userPage, userFilter]);
+
+  React.useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   function createFranchise() {
     navigate('/admin-dashboard/create-franchise');
@@ -48,8 +54,17 @@ export default function AdminDashboard(props: Props) {
   }
 
   async function deleteUser(user: User) {
-    await pizzaService.deleteUser(user);
-    setUserList(await pizzaService.getUsers(userPage, 10, `*${userFilter}*`));
+    try {
+      await pizzaService.deleteUser(user);
+    } catch (err: any) {
+      setUserError(err.message || 'Unable to delete user');
+      return;
+    }
+
+    setUserError('');
+    // Drop the row right away, then refresh so the page refills and the paging state stays accurate
+    setUserList((list) => ({ ...list, users: list.users.filter((u) => u.id !== user.id) }));
+    await loadUsers();
   }
 
   function filterUsers() {
@@ -148,6 +163,11 @@ export default function AdminDashboard(props: Props) {
 
         <div className="text-start py-8 px-4 sm:px-6 lg:px-8">
           <h3 className="text-neutral-100 text-xl">Users</h3>
+          {userError && (
+            <div role="alert" className="text-yellow-200">
+              {userError}
+            </div>
+          )}
           <div className="bg-neutral-100 overflow-clip my-4">
             <div className="flex flex-col">
               <div className="-m-1.5 overflow-x-auto">
