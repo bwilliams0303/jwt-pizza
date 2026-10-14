@@ -186,3 +186,28 @@ test('filtering users starts from the first page', async ({ page }) => {
   await expect(userRow(page, 'Kai Chen')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Prev' })).toBeDisabled();
 });
+
+test('admin deletes users', async ({ page }) => {
+  await adminInit(page);
+  await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled();
+
+  await userRow(page, 'Joe').getByRole('button', { name: 'Delete' }).click();
+  await expect(userRow(page, 'Joe')).not.toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+
+  // Deleting a second user leaves 10, so the list refreshes onto a single page
+  await userRow(page, 'Betty').getByRole('button', { name: 'Delete' }).click();
+  await expect(userRow(page, 'Betty')).not.toBeVisible();
+  await expect(userRow(page, 'Lily')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+});
+
+test('deleted user cannot log in', async ({ page }) => {
+  await adminInit(page);
+  await userRow(page, 'Kai Chen').getByRole('button', { name: 'Delete' }).click();
+  await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
+
+  await page.getByRole('link', { name: 'Logout' }).click();
+  await login(page, 'd@jwt.com', 'a');
+  await expect(page.getByRole('main')).toContainText('unknown user');
+});

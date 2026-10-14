@@ -57,10 +57,17 @@ export async function basicInit(page: Page) {
     await route.fulfill({ json: loggedInUser });
   });
 
-  // Update a user (PUT /api/user/:userId). Updates the stored credentials so later logins see the change.
+  // Update (PUT) or delete (DELETE) a user at /api/user/:userId. Changes the stored credentials so later logins see them.
   await page.route(/\/api\/user\/\d+$/, async (route) => {
-    expect(route.request().method()).toBe('PUT');
     const userId = new URL(route.request().url()).pathname.split('/').pop();
+    if (route.request().method() === 'DELETE') {
+      const [email] = Object.entries(validUsers).find(([, u]) => u.id === userId)!;
+      delete validUsers[email];
+      await route.fulfill({ json: { message: 'user deleted' } });
+      return;
+    }
+
+    expect(route.request().method()).toBe('PUT');
     const { name, email, password } = route.request().postDataJSON();
     const [oldEmail, oldUser] = Object.entries(validUsers).find(([, u]) => u.id === userId)!;
     const user: User = { ...oldUser, name, email, password: password || oldUser.password };
