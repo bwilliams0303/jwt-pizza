@@ -138,3 +138,11 @@ test('admin updates their name and keeps admin access', async ({ page }) => {
   await page.getByLabel('Global').getByRole('link', { name: 'Admin' }).click();
   await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
 });
+
+test('edit dialog masks the password', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Password')).toHaveAttribute('type', 'password');
+});

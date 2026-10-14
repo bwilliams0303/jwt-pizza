@@ -147,7 +147,7 @@ export default function DinerDashboard(props: Props) {
                 <label htmlFor="edit-user-password" className="font-semibold">
                   password:
                 </label>
-                <input id="edit-user-password" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
+                <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
               </div>
             </div>
             <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
