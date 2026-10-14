@@ -211,3 +211,15 @@ test('deleted user cannot log in', async ({ page }) => {
   await login(page, 'd@jwt.com', 'a');
   await expect(page.getByRole('main')).toContainText('unknown user');
 });
+
+test('delete user error is shown and the user remains', async ({ page }) => {
+  await adminInit(page);
+  await page.route(/\/api\/user\/\d+$/, async (route) => {
+    expect(route.request().method()).toBe('DELETE');
+    await route.fulfill({ status: 500, json: { message: 'unable to delete user' } });
+  });
+
+  await userRow(page, 'Joe').getByRole('button', { name: 'Delete' }).click();
+  await expect(page.getByRole('alert')).toContainText('unable to delete user');
+  await expect(userRow(page, 'Joe')).toBeVisible();
+});
