@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, Route } from '@playwright/test';
 import { test, expect } from './testSetup';
 import { basicInit, login } from './mocks';
 
@@ -145,4 +145,51 @@ test('edit dialog masks the password', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Edit' }).click();
   await expect(page.getByRole('dialog').getByLabel('Password')).toHaveAttribute('type', 'password');
+});
+
+async function failUserUpdates(page: Page) {
+  const handler = async (route: Route) => {
+    expect(route.request().method()).toBe('PUT');
+    await route.fulfill({ status: 500, json: { message: 'unable to update user' } });
+  };
+  await page.route(/\/api\/user\/\d+$/, handler);
+  return () => page.unroute(/\/api\/user\/\d+$/, handler);
+}
+
+test('update error is shown and the user is unchanged', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+  await failUserUpdates(page);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('dialog').getByLabel('Name').fill('bad name');
+  await page.getByRole('button', { name: 'Update' }).click();
+
+  await expect(page.getByRole('dialog')).toContainText('unable to update user');
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  await page.getByRole('dialog').locator('[data-hs-overlay="#hs-jwt-modal"]').click();
+  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await expect(page.getByRole('main')).toContainText('pizza diner');
+  await expect(page.getByRole('main')).not.toContainText('bad name');
+
+  // Reopening the dialog starts without the old error
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('dialog')).not.toContainText('unable to update user');
+});
+
+test('retrying a failed update succeeds', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+  const restoreUserUpdates = await failUserUpdates(page);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('dialog').getByLabel('Name').fill('pizza dinerz');
+  await page.getByRole('button', { name: 'Update' }).click();
+  await expect(page.getByRole('dialog')).toContainText('unable to update user');
+
+  await restoreUserUpdates();
+  await page.getByRole('button', { name: 'Update' }).click();
+  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await expect(page.getByRole('main')).toContainText('pizza dinerz');
 });
