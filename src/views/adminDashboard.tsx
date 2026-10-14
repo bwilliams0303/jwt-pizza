@@ -30,13 +30,15 @@ export default function AdminDashboard(props: Props) {
     })();
   }, [props.user, franchisePage]);
 
-  React.useEffect(() => {
-    (async () => {
-      if (Role.isRole(props.user, Role.Admin)) {
-        setUserList(await pizzaService.getUsers(userPage, USER_PAGE_SIZE, `*${userFilter}*`));
-      }
-    })();
+  const loadUsers = React.useCallback(async () => {
+    if (Role.isRole(props.user, Role.Admin)) {
+      setUserList(await pizzaService.getUsers(userPage, USER_PAGE_SIZE, `*${userFilter}*`));
+    }
   }, [props.user, userPage, userFilter]);
+
+  React.useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   function createFranchise() {
     navigate('/admin-dashboard/create-franchise');
@@ -52,7 +54,9 @@ export default function AdminDashboard(props: Props) {
 
   async function deleteUser(user: User) {
     await pizzaService.deleteUser(user);
-    setUserList(await pizzaService.getUsers(userPage, USER_PAGE_SIZE, `*${userFilter}*`));
+    // Drop the row right away, then refresh so the page refills and the paging state stays accurate
+    setUserList((list) => ({ ...list, users: list.users.filter((u) => u.id !== user.id) }));
+    await loadUsers();
   }
 
   function filterUsers() {
