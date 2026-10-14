@@ -50,6 +50,19 @@ export async function basicInit(page: Page) {
     await route.fulfill({ json: loggedInUser });
   });
 
+  // Update a user (PUT /api/user/:userId). Updates the stored credentials so later logins see the change.
+  await page.route(/\/api\/user\/\d+$/, async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    const userId = new URL(route.request().url()).pathname.split('/').pop();
+    const { name, email, password } = route.request().postDataJSON();
+    const [oldEmail, oldUser] = Object.entries(validUsers).find(([, u]) => u.id === userId)!;
+    const user: User = { ...oldUser, name, email, password: password || oldUser.password };
+    delete validUsers[oldEmail];
+    validUsers[email] = user;
+    loggedInUser = user;
+    await route.fulfill({ json: { user: { ...user, password: undefined }, token: 'abcdef' } });
+  });
+
   // A standard menu
   await page.route('*/**/api/order/menu', async (route) => {
     const menuRes = [
