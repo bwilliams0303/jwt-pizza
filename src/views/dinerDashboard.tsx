@@ -136,12 +136,18 @@ export default function DinerDashboard(props: Props) {
             </div>
             <div className="p-4 overflow-y-scroll max-h-52">
               <div className="my-4 text-lg text-start grid grid-cols-5 gap-2 items-center">
-                <div className="font-semibold">name:</div>
-                <input type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
-                <div className="font-semibold">email:</div>
-                <input type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
-                <div className="font-semibold">password:</div>
-                <input id="password" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
+                <label htmlFor="edit-user-name" className="font-semibold">
+                  name:
+                </label>
+                <input id="edit-user-name" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
+                <label htmlFor="edit-user-email" className="font-semibold">
+                  email:
+                </label>
+                <input id="edit-user-email" type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
+                <label htmlFor="edit-user-password" className="font-semibold">
+                  password:
+                </label>
+                <input id="edit-user-password" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
               </div>
             </div>
             <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">

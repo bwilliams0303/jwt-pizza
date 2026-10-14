@@ -17,9 +17,9 @@ async function editUser(page: Page, fields: { name?: string; email?: string; pas
   await page.getByRole('button', { name: 'Edit' }).click();
   await expect(page.locator('h3')).toContainText('Edit user');
   const dialog = page.getByRole('dialog');
-  if (fields.name !== undefined) await dialog.getByRole('textbox').nth(0).fill(fields.name);
-  if (fields.email !== undefined) await dialog.getByRole('textbox').nth(1).fill(fields.email);
-  if (fields.password !== undefined) await dialog.getByRole('textbox').nth(2).fill(fields.password);
+  if (fields.name !== undefined) await dialog.getByLabel('Name').fill(fields.name);
+  if (fields.email !== undefined) await dialog.getByLabel('Email').fill(fields.email);
+  if (fields.password !== undefined) await dialog.getByLabel('Password').fill(fields.password);
   await page.getByRole('button', { name: 'Update' }).click();
 
   await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
@@ -100,7 +100,7 @@ test('closing the edit dialog does not update the user', async ({ page }) => {
   await registerDiner(page, email);
 
   await page.getByRole('button', { name: 'Edit' }).click();
-  await page.getByRole('dialog').getByRole('textbox').first().fill('not saved');
+  await page.getByRole('dialog').getByLabel('Name').fill('not saved');
   // Let preline finish opening the dialog before asking it to close
   await page.waitForSelector('[role="dialog"].opened');
   await page.getByRole('dialog').locator('[data-hs-overlay="#hs-jwt-modal"]').click();
