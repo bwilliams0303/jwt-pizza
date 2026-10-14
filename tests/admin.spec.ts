@@ -14,6 +14,11 @@ function franchiseRow(page: Page, name: string) {
   return page.getByRole('row', { name: new RegExp(`^${name}\\b.*Close$`) });
 }
 
+// User rows start with the user's name
+function userRow(page: Page, name: string) {
+  return page.getByRole('row', { name: new RegExp(`^${name}\\b`) });
+}
+
 test('visitors cannot see the admin dashboard', async ({ page }) => {
   await basicInit(page);
   await page.goto('/admin-dashboard');
@@ -127,4 +132,16 @@ test('admin closes a store', async ({ page }) => {
   await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
   await expect(franchiseRow(page, 'PizzaCorp')).toBeVisible();
   await expect(page.getByRole('row', { name: /Spanish Fork/ })).not.toBeVisible();
+});
+
+test('admin sees users with name, email, and role', async ({ page }) => {
+  await adminInit(page);
+
+  await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).toContainText('d@jwt.com');
+  await expect(userRow(page, 'Kai Chen')).toContainText('diner');
+  await expect(userRow(page, 'Pizza Franchisee')).toContainText('f@jwt.com');
+  await expect(userRow(page, 'Pizza Franchisee')).toContainText('franchisee');
+  await expect(userRow(page, 'Pizza Admin')).toContainText('a@jwt.com');
+  await expect(userRow(page, 'Pizza Admin')).toContainText('admin');
 });

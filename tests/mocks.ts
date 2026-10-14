@@ -63,6 +63,20 @@ export async function basicInit(page: Page) {
     await route.fulfill({ json: { user: { ...user, password: undefined }, token: 'abcdef' } });
   });
 
+  // List users (GET /api/user?page&limit&name), where name may be wrapped in * wildcards
+  await page.route(/\/api\/user(\?.*)?$/, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    const params = new URL(route.request().url()).searchParams;
+    const page = Number(params.get('page') ?? 0);
+    const limit = Number(params.get('limit') ?? 10);
+    const nameFilter = (params.get('name') ?? '*').replace(/\*/g, '').toLowerCase();
+    const matching = Object.values(validUsers)
+      .filter((u) => u.name!.toLowerCase().includes(nameFilter))
+      .map((u) => ({ ...u, password: undefined }));
+    const users = matching.slice(page * limit, (page + 1) * limit);
+    await route.fulfill({ json: { users, more: matching.length > (page + 1) * limit } });
+  });
+
   // A standard menu
   await page.route('*/**/api/order/menu', async (route) => {
     const menuRes = [
