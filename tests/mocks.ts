@@ -12,9 +12,16 @@ export const franchisee: User = {
 };
 export const admin: User = { id: '1', name: 'Pizza Admin', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
 
+export const extraDiners = ['Joe', 'Betty', 'Sam', 'Franco', 'Buddy', 'Mac', 'Juan', 'Jamie', 'Lily'];
+
 export async function basicInit(page: Page) {
   let loggedInUser: User | undefined;
   const validUsers: Record<string, User> = { [diner.email!]: diner, [franchisee.email!]: franchisee, [admin.email!]: admin };
+  // Enough extra diners that the admin user list spans more than one page
+  extraDiners.forEach((name, i) => {
+    const email = `${name.toLowerCase()}@jwt.com`;
+    validUsers[email] = { id: String(20 + i), name, email, password: 'diner', roles: [{ role: Role.Diner }] };
+  });
 
   // Login (PUT), register (POST), and logout (DELETE)
   await page.route('*/**/api/auth', async (route) => {

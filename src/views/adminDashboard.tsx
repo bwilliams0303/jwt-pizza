@@ -17,6 +17,9 @@ export default function AdminDashboard(props: Props) {
   const [franchisePage, setFranchisePage] = React.useState(0);
   const filterFranchiseRef = React.useRef<HTMLInputElement>(null);
   const [userList, setUserList] = React.useState<UserList>({ users: [], more: false });
+  const [userPage, setUserPage] = React.useState(0);
+  const [userFilter, setUserFilter] = React.useState('');
+  const filterUserRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -27,10 +30,10 @@ export default function AdminDashboard(props: Props) {
   React.useEffect(() => {
     (async () => {
       if (Role.isRole(props.user, Role.Admin)) {
-        setUserList(await pizzaService.getUsers(0, 10, '*'));
+        setUserList(await pizzaService.getUsers(userPage, 10, `*${userFilter}*`));
       }
     })();
-  }, [props.user]);
+  }, [props.user, userPage, userFilter]);
 
   function createFranchise() {
     navigate('/admin-dashboard/create-franchise');
@@ -42,6 +45,11 @@ export default function AdminDashboard(props: Props) {
 
   async function closeStore(franchise: Franchise, store: Store) {
     navigate('/admin-dashboard/close-store', { state: { franchise: franchise, store: store } });
+  }
+
+  function filterUsers() {
+    setUserPage(0);
+    setUserFilter(filterUserRef.current?.value ?? '');
   }
 
   async function filterFranchises() {
@@ -159,6 +167,24 @@ export default function AdminDashboard(props: Props) {
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr>
+                          <td className="px-1 py-1">
+                            <input type="text" ref={filterUserRef} name="filterUser" placeholder="Name" className="px-2 py-1 text-sm border border-gray-300 rounded-lg" />
+                            <button type="submit" className="ml-2 px-2 py-1 text-sm font-semibold rounded-lg border border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={filterUsers}>
+                              Search
+                            </button>
+                          </td>
+                          <td colSpan={2} className="text-end text-sm font-medium">
+                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => setUserPage(userPage - 1)} disabled={userPage <= 0}>
+                              Prev
+                            </button>
+                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => setUserPage(userPage + 1)} disabled={!userList.more}>
+                              Next
+                            </button>
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 </div>

@@ -145,3 +145,44 @@ test('admin sees users with name, email, and role', async ({ page }) => {
   await expect(userRow(page, 'Pizza Admin')).toContainText('a@jwt.com');
   await expect(userRow(page, 'Pizza Admin')).toContainText('admin');
 });
+
+test('admin pages through users', async ({ page }) => {
+  await adminInit(page);
+  const previous = page.getByRole('button', { name: 'Prev' });
+  const next = page.getByRole('button', { name: 'Next' });
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+  await expect(userRow(page, 'Lily')).not.toBeVisible();
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeEnabled();
+
+  await next.click();
+  await expect(userRow(page, 'Lily')).toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
+  await expect(next).toBeDisabled();
+
+  await previous.click();
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+  await expect(previous).toBeDisabled();
+});
+
+test('admin filters users by name', async ({ page }) => {
+  await adminInit(page);
+  await page.getByPlaceholder('Name', { exact: true }).fill('pizza');
+  await page.getByRole('button', { name: 'Search' }).click();
+
+  await expect(userRow(page, 'Pizza Franchisee')).toBeVisible();
+  await expect(userRow(page, 'Pizza Admin')).toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+});
+
+test('filtering users starts from the first page', async ({ page }) => {
+  await adminInit(page);
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(userRow(page, 'Lily')).toBeVisible();
+
+  await page.getByPlaceholder('Name', { exact: true }).fill('kai');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Prev' })).toBeDisabled();
+});
