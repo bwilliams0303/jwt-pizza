@@ -7,6 +7,9 @@ import { pizzaService } from '../service/service';
 import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
 
+// Number of users shown per page in the Users table
+const USER_PAGE_SIZE = 10;
+
 interface Props {
   user: User | null;
 }
@@ -30,7 +33,7 @@ export default function AdminDashboard(props: Props) {
   React.useEffect(() => {
     (async () => {
       if (Role.isRole(props.user, Role.Admin)) {
-        setUserList(await pizzaService.getUsers(userPage, 10, `*${userFilter}*`));
+        setUserList(await pizzaService.getUsers(userPage, USER_PAGE_SIZE, `*${userFilter}*`));
       }
     })();
   }, [props.user, userPage, userFilter]);
@@ -49,7 +52,7 @@ export default function AdminDashboard(props: Props) {
 
   async function deleteUser(user: User) {
     await pizzaService.deleteUser(user);
-    setUserList(await pizzaService.getUsers(userPage, 10, `*${userFilter}*`));
+    setUserList(await pizzaService.getUsers(userPage, USER_PAGE_SIZE, `*${userFilter}*`));
   }
 
   function filterUsers() {
