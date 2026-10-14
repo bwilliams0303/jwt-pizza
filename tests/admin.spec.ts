@@ -14,6 +14,11 @@ function franchiseRow(page: Page, name: string) {
   return page.getByRole('row', { name: new RegExp(`^${name}\\b.*Close$`) });
 }
 
+// User rows start with the user's name
+function userRow(page: Page, name: string) {
+  return page.getByRole('row', { name: new RegExp(`^${name}\\b`) });
+}
+
 test('visitors cannot see the admin dashboard', async ({ page }) => {
   await basicInit(page);
   await page.goto('/admin-dashboard');
@@ -127,4 +132,82 @@ test('admin closes a store', async ({ page }) => {
   await expect(page.getByRole('heading', { name: "Mama Ricci's kitchen" })).toBeVisible();
   await expect(franchiseRow(page, 'PizzaCorp')).toBeVisible();
   await expect(page.getByRole('row', { name: /Spanish Fork/ })).not.toBeVisible();
+});
+
+test('admin sees users with name, email, and role', async ({ page }) => {
+  await adminInit(page);
+
+  await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).toContainText('d@jwt.com');
+  await expect(userRow(page, 'Kai Chen')).toContainText('diner');
+  await expect(userRow(page, 'Pizza Franchisee')).toContainText('f@jwt.com');
+  await expect(userRow(page, 'Pizza Franchisee')).toContainText('franchisee');
+  await expect(userRow(page, 'Pizza Admin')).toContainText('a@jwt.com');
+  await expect(userRow(page, 'Pizza Admin')).toContainText('admin');
+});
+
+test('admin pages through users', async ({ page }) => {
+  await adminInit(page);
+  const previous = page.getByRole('button', { name: 'Prev' });
+  const next = page.getByRole('button', { name: 'Next' });
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+  await expect(userRow(page, 'Lily')).not.toBeVisible();
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeEnabled();
+
+  await next.click();
+  await expect(userRow(page, 'Lily')).toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
+  await expect(next).toBeDisabled();
+
+  await previous.click();
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+  await expect(previous).toBeDisabled();
+});
+
+test('admin filters users by name', async ({ page }) => {
+  await adminInit(page);
+  await page.getByPlaceholder('Name', { exact: true }).fill('pizza');
+  await page.getByRole('button', { name: 'Search' }).click();
+
+  await expect(userRow(page, 'Pizza Franchisee')).toBeVisible();
+  await expect(userRow(page, 'Pizza Admin')).toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+});
+
+test('filtering users starts from the first page', async ({ page }) => {
+  await adminInit(page);
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(userRow(page, 'Lily')).toBeVisible();
+
+  await page.getByPlaceholder('Name', { exact: true }).fill('kai');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Prev' })).toBeDisabled();
+});
+
+test('admin deletes users', async ({ page }) => {
+  await adminInit(page);
+  await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled();
+
+  await userRow(page, 'Joe').getByRole('button', { name: 'Delete' }).click();
+  await expect(userRow(page, 'Joe')).not.toBeVisible();
+  await expect(userRow(page, 'Kai Chen')).toBeVisible();
+
+  // Deleting a second user leaves 10, so the list refreshes onto a single page
+  await userRow(page, 'Betty').getByRole('button', { name: 'Delete' }).click();
+  await expect(userRow(page, 'Betty')).not.toBeVisible();
+  await expect(userRow(page, 'Lily')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+});
+
+test('deleted user cannot log in', async ({ page }) => {
+  await adminInit(page);
+  await userRow(page, 'Kai Chen').getByRole('button', { name: 'Delete' }).click();
+  await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
+
+  await page.getByRole('link', { name: 'Logout' }).click();
+  await login(page, 'd@jwt.com', 'a');
+  await expect(page.getByRole('main')).toContainText('unknown user');
 });

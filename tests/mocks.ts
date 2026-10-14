@@ -12,9 +12,16 @@ export const franchisee: User = {
 };
 export const admin: User = { id: '1', name: 'Pizza Admin', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
 
+export const extraDiners = ['Joe', 'Betty', 'Sam', 'Franco', 'Buddy', 'Mac', 'Juan', 'Jamie', 'Lily'];
+
 export async function basicInit(page: Page) {
   let loggedInUser: User | undefined;
   const validUsers: Record<string, User> = { [diner.email!]: diner, [franchisee.email!]: franchisee, [admin.email!]: admin };
+  // Enough extra diners that the admin user list spans more than one page
+  extraDiners.forEach((name, i) => {
+    const email = `${name.toLowerCase()}@jwt.com`;
+    validUsers[email] = { id: String(20 + i), name, email, password: 'diner', roles: [{ role: Role.Diner }] };
+  });
 
   // Login (PUT), register (POST), and logout (DELETE)
   await page.route('*/**/api/auth', async (route) => {
@@ -48,6 +55,40 @@ export async function basicInit(page: Page) {
   await page.route('*/**/api/user/me', async (route) => {
     expect(route.request().method()).toBe('GET');
     await route.fulfill({ json: loggedInUser });
+  });
+
+  // Update (PUT) or delete (DELETE) a user at /api/user/:userId. Changes the stored credentials so later logins see them.
+  await page.route(/\/api\/user\/\d+$/, async (route) => {
+    const userId = new URL(route.request().url()).pathname.split('/').pop();
+    if (route.request().method() === 'DELETE') {
+      const [email] = Object.entries(validUsers).find(([, u]) => u.id === userId)!;
+      delete validUsers[email];
+      await route.fulfill({ json: { message: 'user deleted' } });
+      return;
+    }
+
+    expect(route.request().method()).toBe('PUT');
+    const { name, email, password } = route.request().postDataJSON();
+    const [oldEmail, oldUser] = Object.entries(validUsers).find(([, u]) => u.id === userId)!;
+    const user: User = { ...oldUser, name, email, password: password || oldUser.password };
+    delete validUsers[oldEmail];
+    validUsers[email] = user;
+    loggedInUser = user;
+    await route.fulfill({ json: { user: { ...user, password: undefined }, token: 'abcdef' } });
+  });
+
+  // List users (GET /api/user?page&limit&name), where name may be wrapped in * wildcards
+  await page.route(/\/api\/user(\?.*)?$/, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    const params = new URL(route.request().url()).searchParams;
+    const page = Number(params.get('page') ?? 0);
+    const limit = Number(params.get('limit') ?? 10);
+    const nameFilter = (params.get('name') ?? '*').replace(/\*/g, '').toLowerCase();
+    const matching = Object.values(validUsers)
+      .filter((u) => u.name!.toLowerCase().includes(nameFilter))
+      .map((u) => ({ ...u, password: undefined }));
+    const users = matching.slice(page * limit, (page + 1) * limit);
+    await route.fulfill({ json: { users, more: matching.length > (page + 1) * limit } });
   });
 
   // A standard menu
