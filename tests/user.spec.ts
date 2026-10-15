@@ -203,3 +203,36 @@ test('escape closes the edit dialog without updating', async ({ page }) => {
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('main')).not.toContainText('not saved');
 });
+
+test('update requires a name and email', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  const dialog = page.getByRole('dialog');
+  const update = dialog.getByRole('button', { name: 'Update' });
+  await expect(update).toBeEnabled();
+
+  await dialog.getByLabel('Name').fill('');
+  await expect(update).toBeDisabled();
+  await dialog.getByLabel('Name').fill('pizza diner');
+  await dialog.getByLabel('Email').fill('  ');
+  await expect(update).toBeDisabled();
+  await dialog.getByLabel('Email').fill(email);
+  await expect(update).toBeEnabled();
+});
+
+test('reopening the edit dialog shows the current user', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('dialog').getByLabel('Name').fill('not saved');
+  await page.getByRole('dialog').getByLabel('Password').fill('secret');
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Name')).toHaveValue('pizza diner');
+  await expect(page.getByRole('dialog').getByLabel('Email')).toHaveValue(email);
+  await expect(page.getByRole('dialog').getByLabel('Password')).toHaveValue('');
+});

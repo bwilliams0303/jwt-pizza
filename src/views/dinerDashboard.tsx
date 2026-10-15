@@ -14,9 +14,9 @@ interface Props {
 export default function DinerDashboard(props: Props) {
   const user = props.user || ({} as User);
   const [orders, setOrders] = React.useState<Order[]>([]);
-  const nameRef = React.useRef<HTMLInputElement>(null);
-  const emailRef = React.useRef<HTMLInputElement>(null);
-  const passwordRef = React.useRef<HTMLInputElement>(null);
+  const [editName, setEditName] = React.useState('');
+  const [editEmail, setEditEmail] = React.useState('');
+  const [editPassword, setEditPassword] = React.useState('');
   const [updateError, setUpdateError] = React.useState('');
   const [isEditing, setIsEditing] = React.useState(false);
 
@@ -50,9 +50,9 @@ export default function DinerDashboard(props: Props) {
   async function updateUser() {
     let updatedUser: User = {
       id: user.id,
-      name: nameRef.current?.value,
-      email: emailRef.current?.value,
-      password: passwordRef.current?.value || undefined,
+      name: editName,
+      email: editEmail,
+      password: editPassword || undefined,
       roles: user.roles,
     };
 
@@ -70,9 +70,15 @@ export default function DinerDashboard(props: Props) {
   }
 
   function openEditDialog() {
+    // Start each edit from the current user so abandoned changes are not carried over
+    setEditName(user.name ?? '');
+    setEditEmail(user.email ?? '');
+    setEditPassword('');
     setUpdateError('');
     setIsEditing(true);
   }
+
+  const canUpdate = editName.trim() !== '' && editEmail.trim() !== '';
 
   return (
     <View title="Your pizza kitchen">
@@ -163,15 +169,15 @@ export default function DinerDashboard(props: Props) {
                   <label htmlFor="edit-user-name" className="font-semibold">
                     name:
                   </label>
-                  <input id="edit-user-name" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
+                  <input id="edit-user-name" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" value={editName} onChange={(e) => setEditName(e.target.value)} />
                   <label htmlFor="edit-user-email" className="font-semibold">
                     email:
                   </label>
-                  <input id="edit-user-email" type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
+                  <input id="edit-user-email" type="email" className="col-span-4 border border-gray-300 rounded-md p-1" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
                   <label htmlFor="edit-user-password" className="font-semibold">
                     password:
                   </label>
-                  <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
+                  <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
                 </div>
                 {updateError && (
                   <div role="alert" className="text-sm text-red-600">
@@ -180,7 +186,7 @@ export default function DinerDashboard(props: Props) {
                 )}
               </div>
               <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
-                <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" onClick={updateUser}>
+                <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" onClick={updateUser} disabled={!canUpdate}>
                   Update
                 </button>
               </div>
