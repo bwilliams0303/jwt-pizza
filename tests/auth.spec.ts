@@ -14,7 +14,8 @@ test('login with bad password', async ({ page }) => {
   await basicInit(page);
   await login(page, 'd@jwt.com', 'wrong');
 
-  await expect(page.getByRole('main')).toContainText('unknown user');
+  await expect(page.getByText('unknown user', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText('{');
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'KC' })).not.toBeVisible();
 });
@@ -80,7 +81,8 @@ test('login when the service is unreachable', async ({ page }) => {
   await page.route('*/**/api/auth', (route) => route.abort());
   await login(page, 'd@jwt.com', 'a');
 
-  await expect(page.getByRole('main')).toContainText('"code":500');
+  await expect(page.getByText('Failed to fetch', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText('{');
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });
 
@@ -94,4 +96,20 @@ test('an expired token is cleared on load', async ({ page }) => {
 
   await expect(page.getByLabel('Global').getByRole('link', { name: 'Login' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('token'))).toBeNull();
+});
+
+test('register failure shows the error message', async ({ page }) => {
+  await basicInit(page);
+  await page.route('*/**/api/auth', async (route) => {
+    expect(route.request().method()).toBe('POST');
+    await route.fulfill({ status: 409, json: { message: 'email already registered' } });
+  });
+  await page.getByRole('link', { name: 'Register' }).click();
+  await page.getByPlaceholder('Full name').fill('Kai Chen');
+  await page.getByPlaceholder('Email address').fill('d@jwt.com');
+  await page.getByPlaceholder('Password').fill('a');
+  await page.getByRole('button', { name: 'Register' }).click();
+
+  await expect(page.getByText('email already registered', { exact: true })).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText('{');
 });
