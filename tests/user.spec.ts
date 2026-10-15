@@ -215,11 +215,25 @@ test('update requires a name and email', async ({ page }) => {
 
   await dialog.getByLabel('Name').fill('');
   await expect(update).toBeDisabled();
+  await expect(dialog).toContainText('Name is required');
   await dialog.getByLabel('Name').fill('pizza diner');
   await dialog.getByLabel('Email').fill('  ');
   await expect(update).toBeDisabled();
+  await expect(dialog).toContainText('Email is required');
   await dialog.getByLabel('Email').fill(email);
   await expect(update).toBeEnabled();
+  await expect(dialog).not.toContainText('required');
+});
+
+test('update requires a valid email address', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Email').fill('not-an-email');
+  await expect(dialog.getByRole('button', { name: 'Update' })).toBeDisabled();
+  await expect(dialog).toContainText('Email must be a valid address');
 });
 
 test('reopening the edit dialog shows the current user', async ({ page }) => {
