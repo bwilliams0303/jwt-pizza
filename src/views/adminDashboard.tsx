@@ -4,12 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import NotFound from './notFound';
 import Button from '../components/button';
 import Alert from '../components/alert';
+import TableHeader from '../components/tableHeader';
 import { pizzaService } from '../service/service';
 import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
 
 // Number of users shown per page in the Users table
 const USER_PAGE_SIZE = 10;
+
+const FRANCHISE_HEADERS = ['Franchise', 'Franchisee', 'Store', 'Revenue', 'Action'];
+const USER_HEADERS = ['Name', 'Email', 'Role', 'Action'];
 
 interface Props {
   user: User | null;
@@ -87,15 +91,7 @@ export default function AdminDashboard(props: Props) {
                 <div className="p-1.5 min-w-full inline-block align-middle">
                   <div className="overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="uppercase text-neutral-100 bg-slate-400 border-b-2 border-gray-500">
-                        <tr>
-                          {['Franchise', 'Franchisee', 'Store', 'Revenue', 'Action'].map((header) => (
-                            <th key={header} scope="col" className="px-6 py-3 text-center text-xs font-medium">
-                              {header}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
+                      <TableHeader headers={FRANCHISE_HEADERS} />
                       {franchiseList.franchises.map((franchise, findex) => {
                         return (
                           <tbody key={findex} className="divide-y divide-gray-200">
@@ -140,10 +136,10 @@ export default function AdminDashboard(props: Props) {
                             </button>
                           </td>
                           <td colSpan={4} className="text-end text-sm font-medium">
-                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300 " onClick={() => setFranchisePage(franchisePage - 1)} disabled={franchisePage <= 0}>
+                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300 " aria-label="Previous page of franchises" onClick={() => setFranchisePage(franchisePage - 1)} disabled={franchisePage <= 0}>
                               «
                             </button>
-                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => setFranchisePage(franchisePage + 1)} disabled={!franchiseList.more}>
+                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" aria-label="Next page of franchises" onClick={() => setFranchisePage(franchisePage + 1)} disabled={!franchiseList.more}>
                               »
                             </button>
                           </td>
@@ -169,15 +165,7 @@ export default function AdminDashboard(props: Props) {
                 <div className="p-1.5 min-w-full inline-block align-middle">
                   <div className="overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="uppercase text-neutral-100 bg-slate-400 border-b-2 border-gray-500">
-                        <tr>
-                          {['Name', 'Email', 'Role', 'Action'].map((header) => (
-                            <th key={header} scope="col" className="px-6 py-3 text-center text-xs font-medium">
-                              {header}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
+                      <TableHeader headers={USER_HEADERS} />
                       <tbody className="divide-y divide-gray-200">
                         {userList.users.map((user, uindex) => (
                           <tr key={uindex} className="hover:bg-gray-100">
@@ -202,10 +190,10 @@ export default function AdminDashboard(props: Props) {
                             </button>
                           </td>
                           <td colSpan={3} className="text-end text-sm font-medium">
-                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => setUserPage(userPage - 1)} disabled={userPage <= 0}>
+                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" aria-label="Previous page of users" onClick={() => setUserPage(userPage - 1)} disabled={userPage <= 0}>
                               Prev
                             </button>
-                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => setUserPage(userPage + 1)} disabled={!userList.more}>
+                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" aria-label="Next page of users" onClick={() => setUserPage(userPage + 1)} disabled={!userList.more}>
                               Next
                             </button>
                           </td>

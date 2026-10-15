@@ -50,8 +50,8 @@ test('admin sees franchises, franchisees, stores, and revenue', async ({ page })
 
 test('admin pages through franchises', async ({ page }) => {
   await adminInit(page);
-  const previous = page.getByRole('button', { name: '«' });
-  const next = page.getByRole('button', { name: '»' });
+  const previous = page.getByRole('button', { name: 'Previous page of franchises' });
+  const next = page.getByRole('button', { name: 'Next page of franchises' });
   await expect(previous).toBeDisabled();
   await expect(next).toBeEnabled();
 
@@ -148,8 +148,8 @@ test('admin sees users with name, email, and role', async ({ page }) => {
 
 test('admin pages through users', async ({ page }) => {
   await adminInit(page);
-  const previous = page.getByRole('button', { name: 'Prev' });
-  const next = page.getByRole('button', { name: 'Next' });
+  const previous = page.getByRole('button', { name: 'Previous page of users' });
+  const next = page.getByRole('button', { name: 'Next page of users' });
   await expect(userRow(page, 'Kai Chen')).toBeVisible();
   await expect(userRow(page, 'Lily')).not.toBeVisible();
   await expect(previous).toBeDisabled();
@@ -173,23 +173,23 @@ test('admin filters users by name', async ({ page }) => {
   await expect(userRow(page, 'Pizza Franchisee')).toBeVisible();
   await expect(userRow(page, 'Pizza Admin')).toBeVisible();
   await expect(userRow(page, 'Kai Chen')).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Next page of users' })).toBeDisabled();
 });
 
 test('filtering users starts from the first page', async ({ page }) => {
   await adminInit(page);
-  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Next page of users' }).click();
   await expect(userRow(page, 'Lily')).toBeVisible();
 
   await page.getByPlaceholder('Name', { exact: true }).fill('kai');
   await page.getByRole('button', { name: 'Search' }).click();
   await expect(userRow(page, 'Kai Chen')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Prev' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Previous page of users' })).toBeDisabled();
 });
 
 test('admin deletes users', async ({ page }) => {
   await adminInit(page);
-  await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Next page of users' })).toBeEnabled();
 
   await userRow(page, 'Joe').getByRole('button', { name: 'Delete' }).click();
   await expect(userRow(page, 'Joe')).not.toBeVisible();
@@ -199,7 +199,7 @@ test('admin deletes users', async ({ page }) => {
   await userRow(page, 'Betty').getByRole('button', { name: 'Delete' }).click();
   await expect(userRow(page, 'Betty')).not.toBeVisible();
   await expect(userRow(page, 'Lily')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Next page of users' })).toBeDisabled();
 });
 
 test('deleted user cannot log in', async ({ page }) => {
@@ -222,4 +222,11 @@ test('delete user error is shown and the user remains', async ({ page }) => {
   await userRow(page, 'Joe').getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByRole('alert')).toContainText('unable to delete user');
   await expect(userRow(page, 'Joe')).toBeVisible();
+});
+
+test('admin tables show their column headers', async ({ page }) => {
+  await adminInit(page);
+
+  const headers = page.getByRole('columnheader');
+  await expect(headers).toHaveText(['Franchise', 'Franchisee', 'Store', 'Revenue', 'Action', 'Name', 'Email', 'Role', 'Action']);
 });

@@ -6,6 +6,7 @@ import { Order, OrderHistory, Role, User } from '../service/pizzaService';
 import { CloseIcon } from '../icons';
 import Button from '../components/button';
 import Alert from '../components/alert';
+import { validateUser } from '../service/validateUser';
 
 interface Props {
   user: User | null;
@@ -79,7 +80,8 @@ export default function DinerDashboard(props: Props) {
     setIsEditing(true);
   }
 
-  const canUpdate = editName.trim() !== '' && editEmail.trim() !== '';
+  const validationErrors = validateUser({ name: editName, email: editEmail, password: editPassword });
+  const canUpdate = validationErrors.length === 0;
 
   return (
     <View title="Your pizza kitchen">
@@ -180,6 +182,13 @@ export default function DinerDashboard(props: Props) {
                   </label>
                   <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
                 </div>
+                {validationErrors.length > 0 && (
+                  <ul className="text-sm text-gray-600">
+                    {validationErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                )}
                 <Alert message={updateError} />
               </div>
               <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">

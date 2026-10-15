@@ -215,11 +215,25 @@ test('update requires a name and email', async ({ page }) => {
 
   await dialog.getByLabel('Name').fill('');
   await expect(update).toBeDisabled();
+  await expect(dialog).toContainText('Name is required');
   await dialog.getByLabel('Name').fill('pizza diner');
   await dialog.getByLabel('Email').fill('  ');
   await expect(update).toBeDisabled();
+  await expect(dialog).toContainText('Email is required');
   await dialog.getByLabel('Email').fill(email);
   await expect(update).toBeEnabled();
+  await expect(dialog).not.toContainText('required');
+});
+
+test('update requires a valid email address', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Email').fill('not-an-email');
+  await expect(dialog.getByRole('button', { name: 'Update' })).toBeDisabled();
+  await expect(dialog).toContainText('Email must be a valid address');
 });
 
 test('reopening the edit dialog shows the current user', async ({ page }) => {
@@ -235,4 +249,40 @@ test('reopening the edit dialog shows the current user', async ({ page }) => {
   await expect(page.getByRole('dialog').getByLabel('Name')).toHaveValue('pizza diner');
   await expect(page.getByRole('dialog').getByLabel('Email')).toHaveValue(email);
   await expect(page.getByRole('dialog').getByLabel('Password')).toHaveValue('');
+});
+
+// Count localStorage writes of the auth token so tests can tell whether an update rewrote it
+async function countTokenWrites(page: Page) {
+  await page.addInitScript(() => {
+    const setItem = Storage.prototype.setItem;
+    (window as any).tokenWrites = 0;
+    Storage.prototype.setItem = function (key: string, value: string) {
+      if (key === 'token') (window as any).tokenWrites++;
+      return setItem.call(this, key, value);
+    };
+  });
+  return () => page.evaluate(() => (window as any).tokenWrites as number);
+}
+
+test('updating with an unchanged token does not rewrite it', async ({ page }) => {
+  const tokenWrites = await countTokenWrites(page);
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+  const writesAfterRegister = await tokenWrites();
+
+  await editUser(page, { name: 'pizza dinerq' });
+  await expect(page.getByRole('main')).toContainText('pizza dinerq');
+  expect(await tokenWrites()).toBe(writesAfterRegister);
+});
+
+test('updating with a new token stores it', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+  await page.route(/\/api\/user\/\d+$/, async (route) => {
+    const { name, email } = route.request().postDataJSON();
+    await route.fulfill({ json: { user: { id: '10', name, email, roles: [{ role: 'diner' }] }, token: 'newtoken' } });
+  });
+
+  await editUser(page, { email: `new${email}` });
+  expect(await page.evaluate(() => localStorage.getItem('token'))).toBe('newtoken');
 });
