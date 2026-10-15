@@ -3,6 +3,7 @@ import View from './view';
 import { useNavigate } from 'react-router-dom';
 import NotFound from './notFound';
 import Button from '../components/button';
+import Alert from '../components/alert';
 import { pizzaService } from '../service/service';
 import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
@@ -62,8 +63,6 @@ export default function AdminDashboard(props: Props) {
     }
 
     setUserError('');
-    // Drop the row right away, then refresh so the page refills and the paging state stays accurate
-    setUserList((list) => ({ ...list, users: list.users.filter((u) => u.id !== user.id) }));
     await loadUsers();
   }
 
@@ -163,11 +162,7 @@ export default function AdminDashboard(props: Props) {
 
         <div className="text-start py-8 px-4 sm:px-6 lg:px-8">
           <h3 className="text-neutral-100 text-xl">Users</h3>
-          {userError && (
-            <div role="alert" className="text-yellow-200">
-              {userError}
-            </div>
-          )}
+          <Alert message={userError} />
           <div className="bg-neutral-100 overflow-clip my-4">
             <div className="flex flex-col">
               <div className="-m-1.5 overflow-x-auto">
