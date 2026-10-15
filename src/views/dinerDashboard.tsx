@@ -5,6 +5,7 @@ import { pizzaService } from '../service/service';
 import { Order, OrderHistory, Role, User } from '../service/pizzaService';
 import { CloseIcon } from '../icons';
 import Button from '../components/button';
+import Alert from '../components/alert';
 
 interface Props {
   user: User | null;
@@ -179,11 +180,7 @@ export default function DinerDashboard(props: Props) {
                   </label>
                   <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
                 </div>
-                {updateError && (
-                  <div role="alert" className="text-sm text-red-600">
-                    {updateError}
-                  </div>
-                )}
+                <Alert message={updateError} />
               </div>
               <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
                 <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" onClick={updateUser} disabled={!canUpdate}>
