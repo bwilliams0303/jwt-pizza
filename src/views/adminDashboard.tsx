@@ -9,7 +9,8 @@ import { pizzaService } from '../service/service';
 import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
 
-// Number of users shown per page in the Users table
+// Number of rows shown per page in the Franchises and Users tables
+const FRANCHISE_PAGE_SIZE = 3;
 const USER_PAGE_SIZE = 10;
 
 const FRANCHISE_HEADERS = ['Franchise', 'Franchisee', 'Store', 'Revenue', 'Action'];
@@ -32,7 +33,7 @@ export default function AdminDashboard(props: Props) {
 
   React.useEffect(() => {
     (async () => {
-      setFranchiseList(await pizzaService.getFranchises(franchisePage, 3, '*'));
+      setFranchiseList(await pizzaService.getFranchises(franchisePage, FRANCHISE_PAGE_SIZE, '*'));
     })();
   }, [props.user, franchisePage]);
 
@@ -76,7 +77,7 @@ export default function AdminDashboard(props: Props) {
   }
 
   async function filterFranchises() {
-    setFranchiseList(await pizzaService.getFranchises(franchisePage, 10, `*${filterFranchiseRef.current?.value}*`));
+    setFranchiseList(await pizzaService.getFranchises(franchisePage, FRANCHISE_PAGE_SIZE, `*${filterFranchiseRef.current?.value}*`));
   }
 
   let response = <NotFound />;
