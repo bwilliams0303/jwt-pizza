@@ -5,6 +5,7 @@ import NotFound from './notFound';
 import Button from '../components/button';
 import Alert from '../components/alert';
 import TableHeader from '../components/tableHeader';
+import UserTable from '../components/userTable';
 import { pizzaService } from '../service/service';
 import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
 import { TrashIcon } from '../icons';
@@ -14,7 +15,6 @@ const FRANCHISE_PAGE_SIZE = 3;
 const USER_PAGE_SIZE = 10;
 
 const FRANCHISE_HEADERS = ['Franchise', 'Franchisee', 'Store', 'Revenue', 'Action'];
-const USER_HEADERS = ['Name', 'Email', 'Role', 'Action'];
 
 interface Props {
   user: User | null;
@@ -28,7 +28,6 @@ export default function AdminDashboard(props: Props) {
   const [userList, setUserList] = React.useState<UserList>({ users: [], more: false });
   const [userPage, setUserPage] = React.useState(0);
   const [userFilter, setUserFilter] = React.useState('');
-  const filterUserRef = React.useRef<HTMLInputElement>(null);
   const [userError, setUserError] = React.useState('');
 
   React.useEffect(() => {
@@ -71,9 +70,9 @@ export default function AdminDashboard(props: Props) {
     await loadUsers();
   }
 
-  function filterUsers() {
+  function filterUsers(filter: string) {
     setUserPage(0);
-    setUserFilter(filterUserRef.current?.value ?? '');
+    setUserFilter(filter);
   }
 
   async function filterFranchises() {
@@ -160,52 +159,7 @@ export default function AdminDashboard(props: Props) {
         <div className="text-start py-8 px-4 sm:px-6 lg:px-8">
           <h3 className="text-neutral-100 text-xl">Users</h3>
           <Alert message={userError} />
-          <div className="bg-neutral-100 overflow-clip my-4">
-            <div className="flex flex-col">
-              <div className="-m-1.5 overflow-x-auto">
-                <div className="p-1.5 min-w-full inline-block align-middle">
-                  <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <TableHeader headers={USER_HEADERS} />
-                      <tbody className="divide-y divide-gray-200">
-                        {userList.users.map((user, uindex) => (
-                          <tr key={uindex} className="hover:bg-gray-100">
-                            <td className="text-start px-2 py-1 whitespace-nowrap text-sm text-gray-800">{user.name}</td>
-                            <td className="text-start px-2 py-1 whitespace-nowrap text-sm text-gray-800">{user.email}</td>
-                            <td className="text-start px-2 py-1 whitespace-nowrap text-sm text-gray-800">{user.roles?.map((r) => r.role).join(', ')}</td>
-                            <td className="px-6 py-1 whitespace-nowrap text-end text-sm font-medium">
-                              <button type="button" className="px-2 py-1 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-1 border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={() => deleteUser(user)}>
-                                <TrashIcon />
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr>
-                          <td className="px-1 py-1">
-                            <input type="text" ref={filterUserRef} name="filterUser" placeholder="Name" className="px-2 py-1 text-sm border border-gray-300 rounded-lg" />
-                            <button type="submit" className="ml-2 px-2 py-1 text-sm font-semibold rounded-lg border border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={filterUsers}>
-                              Search
-                            </button>
-                          </td>
-                          <td colSpan={3} className="text-end text-sm font-medium">
-                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" aria-label="Previous page of users" onClick={() => setUserPage(userPage - 1)} disabled={userPage <= 0}>
-                              Prev
-                            </button>
-                            <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" aria-label="Next page of users" onClick={() => setUserPage(userPage + 1)} disabled={!userList.more}>
-                              Next
-                            </button>
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <UserTable users={userList.users} more={userList.more} page={userPage} onPageChange={setUserPage} onFilter={filterUsers} onDelete={deleteUser} />
         </div>
       </View>
     );
