@@ -22,7 +22,7 @@ async function editUser(page: Page, fields: { name?: string; email?: string; pas
   if (fields.password !== undefined) await dialog.getByLabel('Password').fill(fields.password);
   await page.getByRole('button', { name: 'Update' }).click();
 
-  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await expect(page.getByRole('dialog')).toBeHidden();
 }
 
 test('updateUser', async ({ page }) => {
@@ -43,7 +43,7 @@ test('updateUser', async ({ page }) => {
   await page.getByRole('textbox').first().fill('pizza dinerx');
   await page.getByRole('button', { name: 'Update' }).click();
 
-  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await expect(page.getByRole('dialog')).toBeHidden();
 
   await expect(page.getByRole('main')).toContainText('pizza dinerx');
 
@@ -101,10 +101,8 @@ test('closing the edit dialog does not update the user', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('dialog').getByLabel('Name').fill('not saved');
-  // Let preline finish opening the dialog before asking it to close
-  await page.waitForSelector('[role="dialog"].opened');
-  await page.getByRole('dialog').locator('[data-hs-overlay="#hs-jwt-modal"]').click();
-  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
 
   await expect(page.getByRole('main')).toContainText('pizza diner');
   await expect(page.getByRole('main')).not.toContainText('not saved');
@@ -168,8 +166,8 @@ test('update error is shown and the user is unchanged', async ({ page }) => {
   await expect(page.getByRole('dialog')).toContainText('unable to update user');
   await expect(page.getByRole('dialog')).toBeVisible();
 
-  await page.getByRole('dialog').locator('[data-hs-overlay="#hs-jwt-modal"]').click();
-  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('main')).toContainText('pizza diner');
   await expect(page.getByRole('main')).not.toContainText('bad name');
 
@@ -190,6 +188,18 @@ test('retrying a failed update succeeds', async ({ page }) => {
 
   await restoreUserUpdates();
   await page.getByRole('button', { name: 'Update' }).click();
-  await page.waitForSelector('[role="dialog"].hidden', { state: 'attached' });
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('main')).toContainText('pizza dinerz');
+});
+
+test('escape closes the edit dialog without updating', async ({ page }) => {
+  const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await registerDiner(page, email);
+
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('dialog').getByLabel('Name').fill('not saved');
+  await page.keyboard.press('Escape');
+
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByRole('main')).not.toContainText('not saved');
 });

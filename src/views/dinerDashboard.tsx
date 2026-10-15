@@ -4,7 +4,6 @@ import View from './view';
 import { pizzaService } from '../service/service';
 import { Order, OrderHistory, Role, User } from '../service/pizzaService';
 import { CloseIcon } from '../icons';
-import { HSOverlay } from 'preline';
 import Button from '../components/button';
 
 interface Props {
@@ -19,6 +18,7 @@ export default function DinerDashboard(props: Props) {
   const emailRef = React.useRef<HTMLInputElement>(null);
   const passwordRef = React.useRef<HTMLInputElement>(null);
   const [updateError, setUpdateError] = React.useState('');
+  const [isEditing, setIsEditing] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -36,6 +36,16 @@ export default function DinerDashboard(props: Props) {
 
     return role.role;
   }
+
+  // Let Escape close the edit dialog while it is open
+  React.useEffect(() => {
+    if (!isEditing) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setIsEditing(false);
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isEditing]);
 
   async function updateUser() {
     let updatedUser: User = {
@@ -56,14 +66,12 @@ export default function DinerDashboard(props: Props) {
 
     setUpdateError('');
     props.setUser(updatedUser);
-    setTimeout(() => {
-      HSOverlay.close(document.getElementById('hs-jwt-modal')!);
-    }, 100);
+    setIsEditing(false);
   }
 
   function openEditDialog() {
     setUpdateError('');
-    HSOverlay.open(document.getElementById('hs-jwt-modal')!);
+    setIsEditing(true);
   }
 
   return (
@@ -138,44 +146,48 @@ export default function DinerDashboard(props: Props) {
         )}
       </div>
 
-      <div role="dialog" aria-modal="true" aria-labelledby="dialog-title" id="hs-jwt-modal" className="hs-overlay hidden size-full fixed top-10 start-0 z-[80] overflow-x-hidden overflow-y-auto pointer-events-none">
-        <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto min-h-[calc(100%-3.5rem)]">
-          <div className="w-full flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto">
-            <div className="flex justify-between items-center py-3 px-4 border-b bg-slate-200 rounded-t-xl">
-              <h3 className="font-bold text-gray-800">Edit user</h3>
-              <button type="button" className="flex justify-center items-center size-7 text-sm font-semibold rounded-full border border-transparent text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none" data-hs-overlay="#hs-jwt-modal">
-                <CloseIcon className="" />
-              </button>
-            </div>
-            <div className="p-4 overflow-y-scroll max-h-52">
-              <div className="my-4 text-lg text-start grid grid-cols-5 gap-2 items-center">
-                <label htmlFor="edit-user-name" className="font-semibold">
-                  name:
-                </label>
-                <input id="edit-user-name" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
-                <label htmlFor="edit-user-email" className="font-semibold">
-                  email:
-                </label>
-                <input id="edit-user-email" type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
-                <label htmlFor="edit-user-password" className="font-semibold">
-                  password:
-                </label>
-                <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
+      {isEditing && (
+        <div role="dialog" aria-modal="true" aria-labelledby="edit-user-title" className="size-full fixed top-0 start-0 z-[80] overflow-x-hidden overflow-y-auto bg-black/50 pt-10">
+          <div className="mt-7 sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div className="w-full flex flex-col bg-white border shadow-sm rounded-xl">
+              <div className="flex justify-between items-center py-3 px-4 border-b bg-slate-200 rounded-t-xl">
+                <h3 id="edit-user-title" className="font-bold text-gray-800">
+                  Edit user
+                </h3>
+                <button type="button" aria-label="Close" className="flex justify-center items-center size-7 text-sm font-semibold rounded-full border border-transparent text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none" onClick={() => setIsEditing(false)}>
+                  <CloseIcon className="" />
+                </button>
               </div>
-              {updateError && (
-                <div role="alert" className="text-sm text-red-600">
-                  {updateError}
+              <div className="p-4 overflow-y-scroll max-h-52">
+                <div className="my-4 text-lg text-start grid grid-cols-5 gap-2 items-center">
+                  <label htmlFor="edit-user-name" className="font-semibold">
+                    name:
+                  </label>
+                  <input id="edit-user-name" type="text" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.name} ref={nameRef} />
+                  <label htmlFor="edit-user-email" className="font-semibold">
+                    email:
+                  </label>
+                  <input id="edit-user-email" type="email" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue={user.email} ref={emailRef} />
+                  <label htmlFor="edit-user-password" className="font-semibold">
+                    password:
+                  </label>
+                  <input id="edit-user-password" type="password" autoComplete="new-password" className="col-span-4 border border-gray-300 rounded-md p-1" defaultValue="" ref={passwordRef} />
                 </div>
-              )}
-            </div>
-            <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
-              <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" onClick={updateUser}>
-                Update
-              </button>
+                {updateError && (
+                  <div role="alert" className="text-sm text-red-600">
+                    {updateError}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t bg-slate-200 rounded-b-xl">
+                <button type="button" className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none" onClick={updateUser}>
+                  Update
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </View>
   );
 }
