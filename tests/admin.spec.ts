@@ -223,3 +223,10 @@ test('delete user error is shown and the user remains', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('unable to delete user');
   await expect(userRow(page, 'Joe')).toBeVisible();
 });
+
+test('admin tables show their column headers', async ({ page }) => {
+  await adminInit(page);
+
+  const headers = page.getByRole('columnheader');
+  await expect(headers).toHaveText(['Franchise', 'Franchisee', 'Store', 'Revenue', 'Action', 'Name', 'Email', 'Role', 'Action']);
+});
