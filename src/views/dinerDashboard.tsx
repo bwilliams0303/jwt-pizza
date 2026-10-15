@@ -67,6 +67,7 @@ export default function DinerDashboard(props: Props) {
     }
 
     setUpdateError('');
+    setEditPassword('');
     props.setUser(updatedUser);
     setIsEditing(false);
   }
