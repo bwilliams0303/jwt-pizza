@@ -63,8 +63,6 @@ export default function AdminDashboard(props: Props) {
     }
 
     setUserError('');
-    // Drop the row right away, then refresh so the page refills and the paging state stays accurate
-    setUserList((list) => ({ ...list, users: list.users.filter((u) => u.id !== user.id) }));
     await loadUsers();
   }
 
